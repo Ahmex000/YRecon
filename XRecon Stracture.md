@@ -20,6 +20,11 @@
 
 ---
 
+
+
+
+
+
 ### -wild section
 
 - echo now you using Wild Mode
@@ -28,16 +33,22 @@
 - mkdir (targetname)
 - cd (targetname) ; mkdir IPs ; cd IPs
 - now Reverse DNS Resolve Domain/s to IP/s with this commands
-  
-```bash
-curl -s "https://www.virustotal.com/vtapi/v2/domain/report?apikey=9c716df385ecb1665b0d8cf127da4fe9156564d22872d3109ef2e14a919286d8&domain=unisys.com" | jq -r '.. | .ip_address? and add it in virus total file and add line of -- becouse we will add another IP's// empty' #echo getting ip with virus total
-echo "unisys.com" | zdns A 2>/dev/null | jq -r '.results.A.data.answers[] | select(.type == "A") | .answer' and add it in IP's file also , but check if th ips file have this ips , here dont add it
-curl -s "https://api.hackertarget.com/reverseiplookup/?q=mx0b-004a6501.pphosted.com" in subdomains folder/subdomains file
-curl -s "https://bgp.tools/search?q=dell" --user-agent "fire-fox" | grep -Eo '([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]+' | sort -u / and take ASN's to ASNSfloder/asnsfile , and take CIDRs to CIDRs file (the response contain both CIDRs and ASNS) 
+- #echo getting ip with virus total
+- curl -s "https://www.virustotal.com/vtapi/v2/domain/report?apikey=9c716df385ecb1665b0d8cf127da4fe9156564d22872d3109ef2e14a919286d8&domain=unisys.com" | jq -r '.. | .ip_address? // empty'
+ and add it in virus total file and add line of '--' becouse we will add another IP's// empty'
+- echo "unisys.com" | zdns A 2>/dev/null | jq -r '.results.A.data.answers[] | select(.type == "A") | .answer' and add it in IP's file also , but check if th ips file have this ips , here dont add it
+- curl -s "https://api.hackertarget.com/reverseiplookup/?q=mx0b-004a6501.pphosted.com" in subdomains folder/subdomains file
+- curl -s "https://bgp.tools/search?q=dell" --user-agent "fire-fox" | grep -Eo '([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]+' | sort -u / and take ASN's to ASNSfloder/asnsfile , and take CIDRs to CIDRs file 
+ (the response contain both CIDRs and ASNS) 
 
 
-```
 ---
+
+
+
+
+
+
 
 ### -open section
 - echo now you using Open Mode
@@ -47,10 +58,18 @@ curl -s "https://bgp.tools/search?q=dell" --user-agent "fire-fox" | grep -Eo '([
 - echo "Virtual Host Fuzzing"
 - gobuster vhost -u https://Domain.com -t 50 -w subdomains.txt -o / and add valid output in doamins file
 
+
+
+
 ---
+
+
+
+
+
+
 
 ### -urls section
 - echo now you using Urls Mode
-
 -  
 
