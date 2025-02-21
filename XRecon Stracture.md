@@ -40,7 +40,7 @@
 - curl -s "https://api.hackertarget.com/reverseiplookup/?q=mx0b-004a6501.pphosted.com" in subdomains folder/subdomains file
 - curl -s "https://bgp.tools/search?q=dell" --user-agent "fire-fox" | grep -Eo '([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]+' | sort -u / and take ASN's to ASNSfloder/asnsfile , and take CIDRs to CIDRs file 
  (the response contain both CIDRs and ASNS) 
-
+- ffuf -w /subdomain_megalist.txt -u 'https://adminFUZZ.Target.com' -c  -t 350 -mc all  -fs 0 //brute force subdomains
 
 ---
 
