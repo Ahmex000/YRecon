@@ -41,6 +41,14 @@
 - curl -s "https://bgp.tools/search?q=dell" --user-agent "fire-fox" | grep -Eo '([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]+' | sort -u / and take ASN's to ASNSfloder/asnsfile , and take CIDRs to CIDRs file 
  (the response contain both CIDRs and ASNS) 
 - ffuf -w /subdomain_megalist.txt -u 'https://adminFUZZ.Target.com' -c  -t 350 -mc all  -fs 0 //brute force subdomains
+```
+admin-FUZZ.target.com E.G: admin-stg.target.com
+FUZZ-admin.target.com E.G: cert-admin.target.com
+adminFUZZ.target.com  E.G: admintest.target.com
+FUZZadmin.target.com  E.G  testadmin.target.com
+admin.FUZZ.target.com E.G: admin.dev.target.com
+```
+
 
 ---
 
