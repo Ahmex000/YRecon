@@ -1,4 +1,4 @@
-# write XRecon with -/\| as any CLI tool with big or medium size
+# write Y-Recon with -/\| as any CLI tool with big or medium size
 
 /* now all comming steps i need it with random and good color and styles */
 
