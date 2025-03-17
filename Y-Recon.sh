@@ -252,7 +252,7 @@ run_urls_mode() {
  # echo example.com | katana -d 5 -ps -pss waybackarchive,commoncrawl,alienvault -f qurl | urldedupe >output.txt 
     run_command gospider "${output_dir}/urls/urls_gospider.txt" true gospider -s "https://${target}/" -o "${output_dir}/urls_gospider.txt" -c 10 -d 1
     run_command gau "${output_dir}/urls/urls_gau.txt" true echo "${target}" | gau --subs --o "${output_dir}/urls_gau.txt"
-    run_command waybackurls "${output_dir}/urls/urls_waybackurls.txt" true echo "${target}" | waybackurls -o "${output_dir}/urls_waybackurls.txt"
+    run_command waybackurls "${output_dir}/urls/urls_waybackurls.txt" true echo "${target}" | waybackurls >> "${output_dir}/urls_waybackurls.txt"
     run_command hakrawler "${output_dir}/urls/urls_hakrawler.txt" true echo "https://${target}" | hakrawler -o "${output_dir}/urls_hakrawler.txt"
 
     print_colored "Step 17: Scan JS Files" "$BLUE"
