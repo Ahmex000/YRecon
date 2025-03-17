@@ -133,22 +133,20 @@ run_wilde_mode() {
     local subdomain_wordlist=$2
     local output_dir=$3
 
-    print_colored "Now you are using Wilde Mode (Focus: IPs, ASNs, CIDRs, Subdomain Enumeration, Subdomain Brute Forcing)" "$YELLOW"
+    print_colored "2 - Now you are using Wilde Mode (Focus: IPs, ASNs, CIDRs, Subdomain Enumeration, Subdomain Brute Forcing)" "$YELLOW"
 
     print_colored "Step 9: Subdomain Enumeration" "$BLUE"
     run_command subfinder "${output_dir}/subdomains/subdomains_subfinder.txt" true subfinder -silent -d "${target}" -all -o "${output_dir}/subdomains/subdomains_subfinder.txt"
-    run_command amass "${output_dir}/subdomains/subdomains_amass.txt" true amass enum -brute -active -d "${target}" -o "${output_dir}/subdomains/subdomains_amass.txt"
-    run_command curl "${output_dir}/subdomains/subdomains_crtsh.txt" true bash -c "curl -s 'https://crt.sh/?q=%25.${target}&output=json' | jq -r '.[].name_value' | tr ' ' '\n' | sed 's/^\*\.//g' >> '${output_dir}/subdomains/subdomains_crtsh.txt'"
+    run_command amass "${output_dir}/subdomains/subdomains_amass.txt" true amass enum -brute -active  -ip -brute -min-for-recursive -d "${target}" -o "${output_dir}/subdomains/subdomains_amass.txt"
+    run_command curl "${output_dir}/subdomains/subdomains_crtsh.txt" true bash -c "curl -s 'https://crt.sh/?q=%25.${target}&output=json' | jq -r '.[].name_value' | tr ' ' '\n' | sed 's/^\*\.//g' >> '${output_dir}/subdomains/subdomains1_crtsh.txt'"
 
-    run_command curl "${output_dir}/subdomains/subdomains_crtsh.txt" true bash -c "curl -s 'https://crt.sh/?q=%25.%25.${target}&output=json' | jq -r '.[].name_value' | tr ' ' '\n' | sed 's/^\*\.//g' >> '${output_dir}/subdomains/subdomains_crtsh.txt'"
+    run_command curl "${output_dir}/subdomains/subdomains_crtsh.txt" true bash -c "curl -s 'https://crt.sh/?q=%25.%25.${target}&output=json' | jq -r '.[].name_value' | tr ' ' '\n' | sed 's/^\*\.//g' >> '${output_dir}/subdomains/subdomains2_crtsh.txt'"
 
-    run_command curl "${output_dir}/subdomains/subdomains_crtsh.txt" true bash -c "curl -s 'https://crt.sh/?q=%25.%25.%25.${target}&output=json' | jq -r '.[].name_value' | tr ' ' '\n' | sed 's/^\*\.//g' >> '${output_dir}/subdomains/subdomains_crtsh.txt'"
+    run_command curl "${output_dir}/subdomains/subdomains_crtsh.txt" true bash -c "curl -s 'https://crt.sh/?q=%25.%25.%25.${target}&output=json' | jq -r '.[].name_value' | tr ' ' '\n' | sed 's/^\*\.//g' >> '${output_dir}/subdomains/subdomains3_crtsh.txt'"
 
-    sort -u "${output_dir}/subdomains/subdomains_crtsh.txt" -o "${output_dir}/subdomains/subdomains_crtsh.txt"
-
-    run_command theHarvester "${output_dir}/subdomains/subdomains_theharvester.txt" true theHarvester -d "${target}" -b all -f "${output_dir}/subdomains/subdomains_theharvester.txt"
+ #   run_command theHarvester "${output_dir}/subdomains/subdomains_theharvester.txt" true theHarvester -d "${target}" -b all -f "${output_dir}/subdomains/subdomains_theharvester.txt"
     run_command subenum "${output_dir}/subdomains/subdomains_subenum.txt" true subenum -d "${target}" -o "${output_dir}/subdomains/subdomains_subenum.txt"
-    run_command findomain "${output_dir}/subdomains/subdomains_findomain.txt" true findomain -d "${target}" -o "${output_dir}/subdomains/subdomains_findomain.txt"
+    run_command findomain "${output_dir}/subdomains/subdomains_findomain.txt" true findomain -t "${target}" -o "${output_dir}/subdomains/subdomains_findomain.txt"
     run_command assetfinder "${output_dir}/subdomains/subdomains_assetfinder.txt" true assetfinder --subs-only "${target}" >"${output_dir}/subdomains/subdomains_assetfinder.txt"
     run_command sublist3r "${output_dir}/subdomains/subdomains_sublist3r.txt" true sublist3r -d "${target}" -o "${output_dir}/subdomains/subdomains_sublist3r.txt"
     run_command massdns "${output_dir}/subdomains/subdomains_massdns.txt" true massdns -r resolvers.txt -t A -o S -w "${output_dir}/subdomains/subdomains_massdns.txt" "${target}.txt"
@@ -176,6 +174,7 @@ run_wilde_mode() {
     run_command dnscan.py "${output_dir}/subdomains/subdomains_dnscan.txt" true dnscan.py -d "dev-*.${target}" -o "${output_dir}/subdomains/subdomains_dnscan.txt"
 
     cat "${output_dir}/subdomains/"* | sort -u >"${output_dir}/subdomains/unique_subdomains.txt"
+    cat "${output_dir}/subdomains/unique_subdomains.txt" | httpx -sc -ip -server -title -wc -fr -p 80,443,8080,8000,8888 -o "${output_dir}/subdomains/live_subdomains.txt"
 
     if [[ $count_only -eq 1 ]]; then
         print_colored "Results Count for Each Tool:" "$YELLOW"
@@ -222,11 +221,11 @@ run_open_mode() {
 
     base_domain="${target%%.*}"
 
-    print_colored "Now you are using Open Mode (Full Reconnaissance)" "$YELLOW"
+    print_colored "1 - Now you are using Open Mode (Full Reconnaissance)" "$YELLOW"
     print_colored "Step 3: Virtual Host Fuzzing" "$BLUE"
 
 run_command curl "${output_dir}/subdomains/subdomains_crtsh.txt" true bash -c "curl -s 'https://crt.sh/?q=%25.'\"$base_domain\"'&output=json' | tr -d '\0' | jq -r '.[].name_value' > '${output_dir}/TLD/${base_domain}_TLD.txt'"    run_command gobuster "${output_dir}/vhosts_gobuster.txt" true gobuster vhost -u "https://${target}" -t 50 -w "${vhost_wordlist}" --no-error -r -q --append-domain -o "${output_dir}/vhosts_gobuster.txt"
-    run_command VHostScan "${output_dir}/vhosts_vhostscan.txt" true VHostScan -t "${target}" --scan-new -s --force-ssl --threads 50 --no-status-check -o "${output_dir}/vhosts_vhostscan.txt"
+    run_command VHostScan "${output_dir}/vhosts_vhostscan.txt" true VHostScan -t "https://${target}" -w "${vhost_wordlist}" --ssl -oN "${output_dir}/vhosts_vhostscan.txt"
     if [[ $count_only -eq 1 ]]; then
         print_colored "Results Count for Virtual Host Fuzzing Tools:" "$YELLOW"
         count_results "${output_dir}/vhosts_gobuster.txt" "Gobuster VHost"
@@ -245,10 +244,12 @@ run_urls_mode() {
     local vhost_wordlist=$3
     local output_dir=$4
 
-    print_colored "Now you are using Urls Mode (Focus: URL and JS Enumeration)" "$YELLOW"
+    print_colored "3 - Now you are using Urls Mode (Focus: URL and JS Enumeration)" "$YELLOW"
 
     print_colored "Step 16: Claim URLs" "$BLUE"
-    run_command katana "${output_dir}/urls/urls_katana.txt" true katana -xhr-extraction -form-extraction -js-crawl -list "${output_dir}/subdomains/unique_subdomains.txt" -o "${output_dir}/urls_katana.txt"
+ #   run_command katana "${output_dir}/urls/urls_katana.txt" true katana -xhr-extraction -form-extraction -js-crawl -list "${output_dir}/subdomains/unique_subdomains.txt" -o "${output_dir}/urls_katana.txt"
+ # katana -u subdomains_alive.txt -d 5 -ps -pss waybackarchive,commoncrawl,alienvault -kf -jc -fx -ef woff,css,png,svg,jpg,woff2,jpeg,gif,svg -o allurls.txt
+ # echo example.com | katana -d 5 -ps -pss waybackarchive,commoncrawl,alienvault -f qurl | urldedupe >output.txt 
     run_command gospider "${output_dir}/urls/urls_gospider.txt" true gospider -s "https://${target}/" -o "${output_dir}/urls_gospider.txt" -c 10 -d 1
     run_command gau "${output_dir}/urls/urls_gau.txt" true echo "${target}" | gau --subs --o "${output_dir}/urls_gau.txt"
     run_command waybackurls "${output_dir}/urls/urls_waybackurls.txt" true echo "${target}" | waybackurls -o "${output_dir}/urls_waybackurls.txt"
