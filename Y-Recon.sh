@@ -220,7 +220,7 @@ run_wilde_mode() {
 }
 
 # Open Mode Recon
-echo \n\n'-----------------------------------------------------------------'\n\n
+echo -e "\n\n-----------------------------------------------------------------\n\n"
 
 run_open_mode() {
     local target=$1
@@ -230,18 +230,17 @@ run_open_mode() {
 
     base_domain="${target%%.*}"
 
-    print_colored "1 - Now you are using Open Mode (Full Reconnaissance)" "$YELLOW"
+    print_colored "Now you are using Open Mode (Full Reconnaissance)" "$YELLOW"
 
     # Claim TLD's
     echo "send curl to crt.sh to claim TLDs"
     run_command "curl" "${output_dir}/subdomains/subdomains_crtsh.txt" true \
         bash -c "curl -s 'https://crt.sh/?q=%25.${base_domain}&output=json' | jq -r '.[].name_value' | tr ' ' '\n' | sed 's/^\*\.//g' | grep -v '^${target}$' > '${output_dir}/TLD/${base_domain}_TLD.txt'"
 
-    echo "dont forget to revers WHO IS manual to saerch for another realted domains"
-
-    run_command gobuster "${output_dir}/vhosts_gobuster.txt" true gobuster vhost -u "https://${target}" -t 50 -w "${vhost_wordlist}" --no-error -r -q --append-domain -o "${output_dir}/vhosts_gobuster.txt"
+    echo -e "\n\n-----------------------------------------------------------------\n\n"
 
     # Brute Forcing Vhosts using VHostScan
+
     print_colored "Virtual Host Fuzzing" "$BLUE"
     run_command VHostScan "${output_dir}/vhosts_vhostscan.txt" true VHostScan -t "https://${target}" -w "${vhost_wordlist}" --ssl -oN "${output_dir}/vhosts_vhostscan.txt"
     if [[ $count_only -eq 1 ]]; then
@@ -250,25 +249,58 @@ run_open_mode() {
         count_results "${output_dir}/vhosts_vhostscan.txt" "VHostScan"
     fi
 
-    echo \n\n'-----------------------------------------------------------------'\n\n
+    run_command gobuster "${output_dir}/vhosts_gobuster.txt" true gobuster vhost -u "https://${target}" -t 50 -w "${vhost_wordlist}" --no-error -r -q --append-domain -o "${output_dir}/vhosts_gobuster.txt"
+
+    echo -e "\n\n-----------------------------------------------------------------\n\n"
 
     # Resolve DNS (DNS) :  Domains to IPs via DIG
     echo "Resolve DNS (DNS) :  Domains to IPs via DIG"
     # Here when i resolve Domain to IP , i will Reverse DNS , and gain all Domains Hosted in this IP .
+
     # List Of alll hosting provider's IP patterns
     #3.0.0.0/8,13.0.0.0/8,15.0.0.0/8,18.0.0.0/8,34.0.0.0/8,44.192.0.0/10,52.0.0.0/8,54.0.0.0/8,99.0.0.0/8,103.21.244.0/22,103.22.200.0/22,103.31.4.0/22,104.16.0.0/13,104.24.0.0/14,172.64.0.0/13,8.8.8.0/24,34.64.0.0/10,35.190.0.0/16,35.191.0.0/16,66.102.0.0/20,66.249.64.0/19,23.32.0.0/11,23.48.0.0/14,23.72.0.0/13,23.204.0.0/14,151.101.0.0/16,167.82.0.0/17,199.27.72.0/21,45.60.0.0/16,45.223.0.0/16,103.28.248.0/22,64.62.128.0/18,138.68.0.0/16,159.203.0.0/16,192.241.128.0/17,13.64.0.0/11,40.64.0.0/10,52.232.0.0/14,104.40.0.0/13,5.39.0.0/17,37.187.0.0/16,46.105.0.0/16,91.121.0.0/16,144.76.0.0/16,148.251.0.0/16,176.9.0.0/16,213.239.192.0/18,50.116.0.0/16,96.126.96.0/19,173.255.192.0/18,192.81.128.0/17
 
+    # Resolve DNS (DNS) :  Domains to IPs via DIG
     run_command dig "${output_dir}/ips/dns_lookup.txt" true dig +short "${target}" >"${output_dir}/temp.txt"
-    cat "${output_dir}/temp.txt" | anew > "${output_dir}/ips/dns_lookup.txt"
+    cat "${output_dir}/temp.txt" | awk '/^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/' | anew >"${output_dir}/ips/dns_lookup.txt"
+    rm "${output_dir}/temp.txt"
+    cat "${output_dir}/ips/"* | anew >"${output_dir}/ips/uniqe_IPs.txt"
+    print_colored "Do Revers DNS (rDNS): Resolve IP's To Domains MANUAL " "$YELLOW"
 
-    echo \n\n'-----------------------------------------------------------------'\n\n
+    # Revers DNS (DNS) :  IPs to Domains via DIG
+    cat "${output_dir}/ips/uniqe_IPs.txt" | while read -r ip; do
+        curl -s "https://api.shodan.io/shodan/host/${ip}?key=3sSinAybgTpzxdjVM9au6A6SmhVHJ181" | tee \
+            >(jq -r '.data[].domains[]' | sort -u >>"${output_dir}/subdomains/rDNS.txt") \
+            >(jq -r '.asn' | sort -u >>"${output_dir}/asns/asns_shodan.txt")
+    done
+    cat "${output_dir}/asns/"* | anew >"${output_dir}/asns/unique_asns.txt"
+
+    echo -e "\n-----------------------------------------------------------------\n"
+
+    echo "Claiming CIDR's"
+    cat "${output_dir}/ips/uniqe_IPs.txt" | while read -r ip; do
+        [[ -n "$ip" ]] && whois "$ip" | tee \
+            >(grep -Eo '([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]+' | sort -u >>"${output_dir}/cidrs/whois_cidrs.txt")
+    done
+
+    echo -e "\n-----------------------------------------------------------------\n"
+    echo "resolve ASNS to CIDR's"
+
+    cat "${output_dir}/asns/unique_asns.txt" | while read -r asn; do
+        [[ -n "$asn" ]] && whois -h whois.radb.net -- "-i origin ${asn}" | tee \
+            >(grep -Eo '([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]+' | sort -u >>"${output_dir}/cidrs/asn_cidrs.txt")
+    done
+
+    # Using same steps for another scopes Wilde & Urls Scans
 
     run_wilde_mode "$target" "$subdomain_wordlist" "$output_dir"
+
+    echo -e "\n\n-----------------------------------------------------------------\n\n"
+
     run_urls_mode "$target" "$subdomain_wordlist" "$vhost_wordlist" "$output_dir"
 
+    echo -e "\n\n-----------------------------------------------------------------\n\n"
 }
-
-echo \n\n'-----------------------------------------------------------------'\n\n
 
 # Urls Mode Recon
 run_urls_mode() {
@@ -276,7 +308,7 @@ run_urls_mode() {
     local subdomain_wordlist=$2
     local vhost_wordlist=$3
     local output_dir=$4
-    print_colored "--------------------------------------------------" "$RED"
+    echo -e "\n\n-----------------------------------------------------------------\n\n"
     print_colored "3 - Now you are using Urls Mode (Focus: URL and JS Enumeration)" "$YELLOW"
 
     print_colored "Step 16: Claim URLs" "$BLUE"
