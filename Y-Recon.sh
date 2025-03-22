@@ -105,27 +105,6 @@ run_command() {
     fi
 }
 
-# Function to combine and get unique subdomains
-get_unique_subdomains() {
-    local output_dir=$1
-    local subdomains_dir="${output_dir}/subdomains"
-    local unique_file="${output_dir}/unique_subdomains.txt"
-
-    mkdir -p "$subdomains_dir"
-    if ls "${subdomains_dir}"/*.txt 1>/dev/null 2>&1; then
-        cat "${subdomains_dir}"/*.txt | sort | uniq >"$unique_file"
-        local unique_count=$(wc -l <"$unique_file")
-        if [[ $count_only -ne 1 ]]; then
-            print_colored "  [+] Unique Subdomains Found: ${unique_count}" "$GREEN"
-        fi
-    else
-        if [[ $count_only -ne 1 ]]; then
-            print_colored "  [-] No subdomain files found to combine" "$RED"
-        fi
-    fi
-    echo "$unique_file"
-}
-
 # Wilde Mode Recon
 run_wilde_mode() {
     local target=$1
@@ -241,6 +220,8 @@ run_wilde_mode() {
 }
 
 # Open Mode Recon
+echo \n\n'-----------------------------------------------------------------'\n\n
+
 run_open_mode() {
     local target=$1
     local subdomain_wordlist=$2
@@ -250,11 +231,18 @@ run_open_mode() {
     base_domain="${target%%.*}"
 
     print_colored "1 - Now you are using Open Mode (Full Reconnaissance)" "$YELLOW"
-    print_colored "Step 3: Virtual Host Fuzzing" "$BLUE"
+
     # Claim TLD's
-    run_command curl "${output_dir}/subdomains/subdomains_crtsh.txt" true bash -c "curl -s 'https://crt.sh/?q=%25.'\"$base_domain\"'&output=json' | tr -d '\0' | jq -r '.[].name_value' > '${output_dir}/TLD/${base_domain}_TLD.txt'" run_command gobuster "${output_dir}/vhosts_gobuster.txt" true gobuster vhost -u "https://${target}" -t 50 -w "${vhost_wordlist}" --no-error -r -q --append-domain -o "${output_dir}/vhosts_gobuster.txt"
+    echo "send curl to crt.sh to claim TLDs"
+    run_command "curl" "${output_dir}/subdomains/subdomains_crtsh.txt" true \
+        bash -c "curl -s 'https://crt.sh/?q=%25.${base_domain}&output=json' | jq -r '.[].name_value' | tr ' ' '\n' | sed 's/^\*\.//g' | grep -v '^${target}$' > '${output_dir}/TLD/${base_domain}_TLD.txt'"
+
+    echo "dont forget to revers WHO IS manual to saerch for another realted domains"
+
+    run_command gobuster "${output_dir}/vhosts_gobuster.txt" true gobuster vhost -u "https://${target}" -t 50 -w "${vhost_wordlist}" --no-error -r -q --append-domain -o "${output_dir}/vhosts_gobuster.txt"
 
     # Brute Forcing Vhosts using VHostScan
+    print_colored "Virtual Host Fuzzing" "$BLUE"
     run_command VHostScan "${output_dir}/vhosts_vhostscan.txt" true VHostScan -t "https://${target}" -w "${vhost_wordlist}" --ssl -oN "${output_dir}/vhosts_vhostscan.txt"
     if [[ $count_only -eq 1 ]]; then
         print_colored "Results Count for Virtual Host Fuzzing Tools:" "$YELLOW"
@@ -262,10 +250,25 @@ run_open_mode() {
         count_results "${output_dir}/vhosts_vhostscan.txt" "VHostScan"
     fi
 
+    echo \n\n'-----------------------------------------------------------------'\n\n
+
+    # Resolve DNS (DNS) :  Domains to IPs via DIG
+    echo "Resolve DNS (DNS) :  Domains to IPs via DIG"
+    # Here when i resolve Domain to IP , i will Reverse DNS , and gain all Domains Hosted in this IP .
+    # List Of alll hosting provider's IP patterns
+    #3.0.0.0/8,13.0.0.0/8,15.0.0.0/8,18.0.0.0/8,34.0.0.0/8,44.192.0.0/10,52.0.0.0/8,54.0.0.0/8,99.0.0.0/8,103.21.244.0/22,103.22.200.0/22,103.31.4.0/22,104.16.0.0/13,104.24.0.0/14,172.64.0.0/13,8.8.8.0/24,34.64.0.0/10,35.190.0.0/16,35.191.0.0/16,66.102.0.0/20,66.249.64.0/19,23.32.0.0/11,23.48.0.0/14,23.72.0.0/13,23.204.0.0/14,151.101.0.0/16,167.82.0.0/17,199.27.72.0/21,45.60.0.0/16,45.223.0.0/16,103.28.248.0/22,64.62.128.0/18,138.68.0.0/16,159.203.0.0/16,192.241.128.0/17,13.64.0.0/11,40.64.0.0/10,52.232.0.0/14,104.40.0.0/13,5.39.0.0/17,37.187.0.0/16,46.105.0.0/16,91.121.0.0/16,144.76.0.0/16,148.251.0.0/16,176.9.0.0/16,213.239.192.0/18,50.116.0.0/16,96.126.96.0/19,173.255.192.0/18,192.81.128.0/17
+
+    run_command dig "${output_dir}/ips/dns_lookup.txt" true dig +short "${target}" >"${output_dir}/temp.txt"
+    cat "${output_dir}/temp.txt" | anew > "${output_dir}/ips/dns_lookup.txt"
+
+    echo \n\n'-----------------------------------------------------------------'\n\n
+
     run_wilde_mode "$target" "$subdomain_wordlist" "$output_dir"
     run_urls_mode "$target" "$subdomain_wordlist" "$vhost_wordlist" "$output_dir"
 
 }
+
+echo \n\n'-----------------------------------------------------------------'\n\n
 
 # Urls Mode Recon
 run_urls_mode() {
@@ -301,15 +304,15 @@ run_urls_mode() {
     #           print_colored "  [-] js-files.txt not found" "$RED"
     #       fi
     #   fi
-         echo "now i grep js endpoints from '${output_dir}/urls' "
+    echo "now i grep js endpoints from '${output_dir}/urls' "
 
-         cat "${output_dir}/urls"/* | grep -Eho 'https?://[^"]+\.js' >>"${output_dir}/urls/js_files.txt"
-         run_command bash "${output_dir}/urls/js_linkfinder_results.html" true bash -c 'while read -r js_link; do python3 ../LinkFinder/linkfinder.py -i "$js_link" -o cli; done < "$0/urls/js_files.txt" > "$0/urls/js_linkfinder_results.html"' "$output_dir"
+    cat "${output_dir}/urls"/* | grep -Eho 'https?://[^"]+\.js' >>"${output_dir}/urls/js_files.txt"
+    run_command bash "${output_dir}/urls/js_linkfinder_results.html" true bash -c 'while read -r js_link; do linkfinder.py -i "$js_link" -o cli; done < "$0/urls/js_files.txt" > "$0/urls/js_linkfinder_results.html"' "$output_dir"
 
     #    print_colored "Step 18: Hidden Parameters" "$BLUE"
     #    run_command ffuf "${output_dir}/params/params_ffuf.txt" true ffuf -w "${subdomain_wordlist}" -u "https://${target}/script.php?FUZZ=test_value" -fs 4242 -o "${output_dir}/params_ffuf.txt"
     #    run_command arjun "${output_dir}/params/params_arjun.txt" true arjun -u "https://${target}/endpoint" -o "${output_dir}/params_arjun.txt"
-    #    run_command python3 "${output_dir}/params/params_paramspider.txt" true python3 paramspider.py -d "${target}" -o "${output_dir}/params_paramspider.txt"
+    run_command python3 "${output_dir}/params/params_paramspider.txt" true python3 paramspider.py -d "${target}" -o "${output_dir}/params_paramspider.txt"
 
     if [[ $count_only -eq 1 ]]; then
         print_colored "Results Count for Each Tool:" "$YELLOW"
@@ -327,7 +330,7 @@ run_urls_mode() {
     fi
 }
 
-# Main Recon Function
+Main Recon Function
 run_recon() {
     local mode="Unknown"
     local targets=()
